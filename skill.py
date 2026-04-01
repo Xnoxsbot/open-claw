@@ -1,4 +1,4 @@
-```python
+
 import requests
 
 def execute(context, args):
@@ -51,4 +51,3 @@ def execute(context, args):
     report.append("\n🏁 **Operation Complete.**")
     return "\n".join(report)
 
-```
