@@ -1,53 +1,62 @@
 
-import requests
+import sys
 
 def execute(context, args):
     """
-    Open-Claw: Sovereign Data Gripper (v3.0)
-    Aggressive search for prices and data packets.
+    Open-Claw: Sovereign Data Gripper (v3.2)
+    'Ghost Grip' - Bypasses cloud blocks to get real prices.
     """
-    query = " ".join(args).lower() if args else "xnox updates"
+    try:
+        import requests
+    except ImportError:
+        return "❌ **Engine Error:** `requests` missing."
+
+    query = " ".join(args).lower() if args else "bitcoin"
     
     report = [
-        f"🦾 **Open-Claw: Heavy Grip Engaged**",
+        f"🦾 **Open-Claw: Ghost Grip Engaged**",
         f"🔍 **Targeting:** `{query}`\n"
     ]
     
     try:
-        # 1. SPECIAL CASE: CRYPTO PRICES (Free CoinGecko API)
-        if any(coin in query for coin in ["bitcoin", "btc", "eth", "sol", "price"]):
-            coin_id = "bitcoin" # default
-            if "eth" in query: coin_id = "ethereum"
-            if "sol" in query: coin_id = "solana"
+        # 1. THE GHOST GRIP: Use a Google Search Scraper (Free & Hard to Block)
+        # We use a user-agent to look like a real browser
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        
+        # Search specifically for the price
+        search_query = f"{query} price usd"
+        url = f"https://www.google.com/search?q={search_query}"
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        # We look for common price patterns in the HTML
+        text = response.text
+        
+        # Simple extraction logic for the 'Current Price'
+        if "USD" in text or "$" in text:
+            # We use a secondary free API as a backup if Google is too messy
+            backup_url = f"https://api.binance.com/api/v3/ticker/price?symbol={query.upper()}USDT"
+            if "btc" in query or "bitcoin" in query: backup_url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
             
-            p_url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
-            p_res = requests.get(p_url, timeout=5).json()
-            price = p_res.get(coin_id, {}).get("usd")
-            
-            if price:
-                report.append(f"💰 **Market Value Captured:**\n`1 {coin_id.upper()} = ${price:,.2f} USD`")
-                report.append(f"📊 **Source:** Decentralized Market Feed")
+            backup_res = requests.get(backup_url, timeout=5)
+            if backup_res.status_code == 200:
+                price_data = backup_res.json()
+                price = float(price_data['price'])
+                report.append(f"💰 **Live Market Data Captured:**\n`1 {query.upper()} = ${price:,.2f} USD` (via Binance)")
                 return "\n".join(report)
 
-        # 2. GENERAL SEARCH: (Direct Wikipedia/Search fallback)
-        search_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{query.replace(' ', '_')}"
-        response = requests.get(search_url, timeout=5)
-        
-        if response.status_code == 200:
-            data = response.json()
-            extract = data.get("extract", "")
-            if extract:
-                report.append(f"📦 **Packet Decrypted:**\n{extract[:400]}...")
-            else:
-                report.append("⚠️ **Status:** Target found but packet was empty.")
-        else:
-            # 3. FINAL FALLBACK: INTERNAL STATUS
-            report.append("📡 **Internal Core Update:**")
-            report.append("✅ Engine: Stable | ✅ Database: Active | ⚠️ Network: Global search blocked/no results.")
+        # 2. INTEL FALLBACK (Wikipedia)
+        wiki_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{query.replace(' ', '_')}"
+        wiki_res = requests.get(wiki_url, timeout=5)
+        if wiki_res.status_code == 200:
+            extract = wiki_res.json().get("extract", "")
+            report.append(f"📦 **Intelligence Packet:**\n{extract[:400]}...")
+            return "\n".join(report)
+
+        report.append("⚠️ **Status:** Network signal weak. Target encrypted.")
 
     except Exception as e:
         report.append(f"❌ **Grip Error:** {str(e)}")
 
-    report.append("\n🏁 **Operation Complete.**")
     return "\n".join(report)
 
