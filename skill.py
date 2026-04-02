@@ -1,4 +1,4 @@
-```python
+
 import requests
 import socket
 
@@ -51,4 +51,3 @@ def execute(context, args):
 
     return "\n".join(report)
 
-```
